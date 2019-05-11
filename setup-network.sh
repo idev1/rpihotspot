@@ -1,6 +1,6 @@
 #! /bin/bash
 
-# REFERENCE: https://lb.raspberrypi.org/forums/viewtopic.php?t=211542
+# REFERENCE: https://lb.raspberrypi.org/forums/viewtopic.php?t=211542#p1355569
 
 apIp="10.0.0.1"
 apDhcpRange="10.0.0.50,10.0.0.150,12h"

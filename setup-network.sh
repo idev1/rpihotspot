@@ -203,33 +203,13 @@ chmod ug+w $netLogFile
 echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-set-selections
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 
-#If Internet is available then, install hostapd, dnsmasq, iptables-persistent from internet:
-if [ $(curl -Is http://www.google.com 2>/dev/null | head -n 1 | grep -c '200 OK') -gt 0 ]; then
-    echo "[Install]: installing: hostapd dnsmasq iptables-persistent from net ..."
-    apt update
-    if [ "$installUpgrade" = true ]; then
-        apt upgrade -y
-        apt dist-upgrade -y
-    fi
-    apt install -y hostapd dnsmasq iptables-persistent
-else
-    if [ -f $downloadDir/1_libnl-route-3-200.deb -a \
-         -f $downloadDir/2_hostapd.deb -a \
-         -f $downloadDir/3_libnfnetlink0.deb -a \
-         -f $downloadDir/4_dnsmasq-base.deb -a \
-         -f $downloadDir/5_dnsmasq.deb -a \
-         -f $downloadDir/6_netfilter-persistent.deb -a \
-         -f $downloadDir/7_iptables-persistent.deb ]; then
-        echo "[Install]: installing: hostapd dnsmasq iptables-persistent from local available dependencies ..."
-        dpkg --install $downloadDir/1_libnl-route-3-200.deb
-        dpkg --install $downloadDir/2_hostapd.deb 
-        dpkg --install $downloadDir/3_libnfnetlink0.deb 
-        dpkg --install $downloadDir/4_dnsmasq-base.deb 
-        dpkg --install $downloadDir/5_dnsmasq.deb 
-        dpkg --install $downloadDir/6_netfilter-persistent.deb 
-        dpkg --install $downloadDir/7_iptables-persistent.deb
-    fi
+echo "[Install]: installing: hostapd dnsmasq iptables-persistent ..."
+apt update
+if [ "$installUpgrade" = true ]; then
+    apt upgrade -y
+    apt dist-upgrade -y
 fi
+apt install -y hostapd dnsmasq iptables-persistent
 
 systemctl stop hostapd
 systemctl stop dnsmasq

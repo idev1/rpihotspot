@@ -4,8 +4,8 @@
 
 apIp="10.0.0.1"
 apDhcpRange="10.0.0.50,10.0.0.150,12h"
-apSsid="smartnet"
-apPassphrase="Bkfps6325g"
+apSsid="<YOUR_AP_SSID>"
+apPassphrase="<YOUR_AP_SSID_PASSPHRASE>"
 setupIptablesMasquerade="iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -d 10.0.0.0/24 -j MASQUERADE"
 
 workDir="/home/pi"

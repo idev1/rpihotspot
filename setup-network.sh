@@ -398,9 +398,11 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     Usage command is setup-network.sh [OPTION].
     See [OPTION] below:
     ===========================================
-    --clean     Cleans/undo all the previously made network configuration/setup.
-    --install   Install network configuration/setup required for to make wlan0 as Access Point (AP) and Station (STA).
-    --install-upgrade   Install & Upgrade network configuration/setup required for to make wlan0 as Access Point (AP) and Station (STA).
+    --clean             Cleans/undo all the previously made network configuration/setup.
+    --install           Install without System Upgrade, network configuration/setup 
+                        required to make single WiFi chip as Access Point (AP) and Station (STA).
+    --install-upgrade   Install with System Upgrade, network configuration/setup 
+                        required to make single WiFi chip as Access Point (AP) and Station (STA).
     '
     exit 0
 fi

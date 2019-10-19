@@ -185,7 +185,7 @@ doCleanup() {
     apt autoremove -y
 
     #Restart DHCPCD service:
-    systemctl restart dhcpcd
+    sudo systemctl restart dhcpcd
     #systemctl daemon-reload
     sleep 5
     
@@ -211,8 +211,8 @@ if [ "$installUpgrade" = true ]; then
 fi
 apt install -y hostapd dnsmasq iptables-persistent
 
-systemctl stop hostapd
-systemctl stop dnsmasq
+sudo systemctl stop hostapd
+sudo systemctl stop dnsmasq
 
 doAddDhcpdApSetup
 
@@ -232,7 +232,7 @@ dhcp-range=$apDhcpRange
 EOF
 
 cat > /etc/hostapd/hostapd.conf <<EOF
-channel=1
+channel=11
 ssid=$apSsid
 wpa_passphrase=$apPassphrase
 interface=uap0
@@ -251,7 +251,7 @@ wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
 #driver=nl80211
-country_code=IN
+country_code=CA
 # I commented out the lines below in my implementation, but I kept them here for reference.
 # Enable WMM
 #wmm_enabled=1
@@ -295,7 +295,7 @@ iptables-save > /etc/iptables.ipv4.nat
 
 # Bring up uap0 interface. Commented out line may be a possible alternative to using dhcpcd.conf to set up the IP address.
 #ifconfig uap0 10.0.0.1 netmask 255.255.255.0 broadcast 10.0.0.255
-ifconfig uap0 up
+sudo ifconfig uap0 up
 
 # Start hostapd. 10-second sleep avoids some race condition, apparently. It may not need to be that long. (?) 
 echo "Starting hostapd service..."
@@ -304,16 +304,16 @@ sleep 10
 
 #Start dhcpcd. Again, a 5-second sleep
 echo "Starting dhcpcd service..."
-systemctl start dhcpcd.service
+sudo systemctl start dhcpcd.service
 sleep 20
 
 echo "Starting dnsmasq service..."
-systemctl restart dnsmasq.service
+sudo systemctl restart dnsmasq.service
 #systemctl start dnsmasq.service
 
 echo "Enabling netStop service..."
-systemctl enable netStop.service
-systemctl start netStop.service
+sudo systemctl enable netStop.service
+sudo systemctl start netStop.service
 
 echo "netStart DONE"
 bash -c 'echo "\$(date +"%Y-%m-%d %T") - Started: hostapd, dnsmasq, dhcpcd" >> $netLogFile'
@@ -329,13 +329,13 @@ cat > /etc/hosts <<EOF
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 
-127.0.1.1       raspberrypi
-$apIp    raspberrypi
+127.0.1.1       photobooth
+$apIp    photobooth
 EOF
 
 # Disable regular network services:
 # The netStart script handles starting up network services in a certain order and time frame. Disabling them here makes sure things are not run at system startup.
-systemctl unmask hostapd
+sudo systemctl unmask hostapd
 
 cat > $netStopFile <<EOF
 #! /bin/bash
@@ -370,8 +370,8 @@ EOF
 
 echo "[Install]: enabling netStop.service ..."
 
-systemctl systemctl enable netStop.service
-systemctl systemctl start netStop.service
+sudo systemctl systemctl enable netStop.service
+sudo systemctl systemctl start netStop.service
 
 chmod ug+x /etc/rc.local
 

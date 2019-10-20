@@ -4,8 +4,8 @@
 
 apIp="10.0.0.1"
 apDhcpRange="10.0.0.50,10.0.0.150,12h"
-apSsid="<YOUR_AP_SSID>"
-apPassphrase="<YOUR_AP_SSID_PASSPHRASE>"
+apSsid="photobooth"
+apPassphrase="saycheese"
 setupIptablesMasquerade="iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -d 10.0.0.0/24 -j MASQUERADE"
 
 workDir="/home/pi"
@@ -204,12 +204,12 @@ echo iptables-persistent iptables-persistent/autosave_v4 boolean true | debconf-
 echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-set-selections
 
 echo "[Install]: installing: hostapd dnsmasq iptables-persistent ..."
-apt update
+sudo apt update
 if [ "$installUpgrade" = true ]; then
-    apt upgrade -y
-    apt dist-upgrade -y
+    sudo apt upgrade -y
+    sudo apt dist-upgrade -y
 fi
-apt install -y hostapd dnsmasq iptables-persistent
+sudo apt install -y hostapd dnsmasq iptables-persistent
 
 sudo systemctl stop hostapd
 sudo systemctl stop dnsmasq

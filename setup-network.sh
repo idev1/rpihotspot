@@ -395,7 +395,7 @@ fi
 if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; then
     echo '
     No Options specified for script execution.
-    Usage command is setup-network.sh [OPTION].
+    Usage command is sudo ./setup-network.sh [OPTION].
     See [OPTION] below:
     ===========================================
     --clean             Cleans/undo all the previously made network configuration/setup.

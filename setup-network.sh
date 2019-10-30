@@ -2,7 +2,9 @@
 
 apIp="10.0.0.1"
 apDhcpRange="10.0.0.50,10.0.0.150,12h"
+#update to your hotspot name
 apSsid="<YOUR_AP_SSID>"
+#update your hotspot paswword
 apPassphrase="<YOUR_AP_SSID_PASSPHRASE>"
 setupIptablesMasquerade="iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -d 10.0.0.0/24 -j MASQUERADE"
 
@@ -60,6 +62,7 @@ doRemoveDhcpdApSetup() {
 doAddDhcpdApSetup() {
     doRemoveDhcpdApSetup
     cat >> /etc/dhcpcd.conf <<EOF
+
 #__AP_SETUP_START__
 interface uap0
     static ip_address=$apIp
@@ -229,6 +232,7 @@ dhcp-range=$apDhcpRange
 EOF
 
 cat > /etc/hostapd/hostapd.conf <<EOF
+#ensure channel matches your current wifi channel
 channel=1
 ssid=$apSsid
 wpa_passphrase=$apPassphrase
@@ -267,9 +271,11 @@ cat > $netStartFile <<EOF
 #Make sure no uap0 interface exists (this generates an error; we could probably use an if statement to check if it exists first)
 echo "Removing uap0 interface..."
 iw dev uap0 del
+
 #Add uap0 interface (this is dependent on the wireless interface being called wlan0, which it may not be in Stretch)
 echo "Adding uap0 interface..."
 iw dev wlan0 interface add uap0 type __ap
+
 #Modify iptables (these can probably be saved using iptables-persistent if desired)
 echo "IPV4 forwarding: setting..."
 #sysctl net.ipv4.ip_forward=1
@@ -287,23 +293,29 @@ iptables -A FORWARD -i uap0 -o wlan0 -j ACCEPT
 #iptables-save > /etc/iptables/rules.v4
 iptables-save > /etc/iptables.ipv4.nat
 #iptables-restore < /etc/iptables.ipv4.nat
+
 # Bring up uap0 interface. Commented out line may be a possible alternative to using dhcpcd.conf to set up the IP address.
 #ifconfig uap0 10.0.0.1 netmask 255.255.255.0 broadcast 10.0.0.255
 ifconfig uap0 up
+
 # Start hostapd. 10-second sleep avoids some race condition, apparently. It may not need to be that long. (?) 
 echo "Starting hostapd service..."
 systemctl start hostapd.service
 sleep 10
+
 #Start dhcpcd. Again, a 5-second sleep
 echo "Starting dhcpcd service..."
 systemctl start dhcpcd.service
 sleep 20
+
 echo "Starting dnsmasq service..."
 systemctl restart dnsmasq.service
 #systemctl start dnsmasq.service
+
 echo "Enabling netStop service..."
 systemctl enable netStop.service
 systemctl start netStop.service
+
 echo "netStart DONE"
 bash -c 'echo "\$(date +"%Y-%m-%d %T") - Started: hostapd, dnsmasq, dhcpcd" >> $netLogFile'
 EOF
@@ -317,6 +329,7 @@ cat > /etc/hosts <<EOF
 ::1             localhost ip6-localhost ip6-loopback
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
+
 127.0.1.1       raspberrypi
 $apIp    raspberrypi
 EOF
@@ -327,13 +340,16 @@ systemctl unmask hostapd
 
 cat > $netStopFile <<EOF
 #! /bin/bash
+
 sudo systemctl stop hostapd
 sudo systemctl stop dnsmasq
 sudo systemctl stop dhcpcd
 sudo systemctl disable hostapd
 sudo systemctl disable dnsmasq
 sudo systemctl disable dhcpcd
+
 sudo bash -c 'echo "\$(date +"%Y-%m-%d %T") - Stopped: hostapd, dnsmasq, dhcpcd" >> $netLogFile'
+
 EOF
 
 chmod ug+x $netStopFile
@@ -342,11 +358,13 @@ chmod ug+x $netStopFile
 cat > $netStopServiceFile <<EOF
 [Unit]
 Description=Stops all the WiFi dependencies: hostapd, dnsmasq and dhcpcd.
+
 [Service]
 Type=oneshot
 RemainAfterExit=true
 ExecStart=/bin/true
 ExecStop=$netStopFile
+
 [Install]
 WantedBy=multi-user.target
 EOF

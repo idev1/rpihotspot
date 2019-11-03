@@ -8,7 +8,7 @@ Although, the script is created using the thought process of the above reference
 
 <pre>
 <strong>
-Usage command is: "sudo ./setup-network.sh" [OPTION]. See [OPTION] below:
+Usage command is: "sudo ./setup-network.sh [OPTION]". See [OPTION] below:
 </strong>
 </pre>
 ________________________________________________________________________________

@@ -195,7 +195,6 @@ while [ "$1" != "" ]; do
                     # Between (200-255)
                     2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
                     *) minCalcDigit=1; maxCalcDigit=100 ;;
-                        
                 esac
                 apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
                 apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
@@ -718,9 +717,9 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     ============================================================================
     --clean             Cleans/undo all the previously made network configuration/setup.
     
-    --install           Install network configuration/setup required for to make '${wlanInterfaceName}' as Access Point (AP) and Station (STA).
+    --install           Install network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
     
-    --install-upgrade   Install & Upgrade network configuration/setup required for to make '${wlanInterfaceName}' as Access Point (AP) and Station (STA).
+    --install-upgrade   Install & Upgrade network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
     
     --ap-ssid           Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long. 
                         Allowed special chars are: _ -

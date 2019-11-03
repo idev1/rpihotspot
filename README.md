@@ -42,7 +42,7 @@ SE, SG, SI, SK, TH, TW, US, ZA</pre>
 
 <strong>--ap-ip-address</strong>
 <pre>Optional field for installation: Set Access Point(AP) IP Address. 
-Default IP Address value is: zzz.zzz.zzz.zzz. 
+Default IP Address value is: 10.0.0.1. 
 Access Point(AP) IP address must not be equal to WiFi Station(wlan0) IP address: xxx.xxx.xxx.xxx 
 with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx</pre>
 	

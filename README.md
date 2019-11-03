@@ -17,12 +17,12 @@ ________________________________________________________________________________
 <pre>Cleans/undo all the previously made network configuration/setup.</pre>
 
 <strong>--install</strong>
-<pre>Install network configuration/setup required for to make wlan0 as 
-Access Point (AP) and Station (STA) both.</pre>
+<pre>Install network configuration/setup required to make WiFi chip as 
+Access Point(AP) and Station(STA) both.</pre>
 
 <strong>--install-upgrade</strong>
-<pre>Install & Upgrade network configuration/setup required for to make wlan0 as 
-Access Point (AP) and Station (STA) both.</pre>
+<pre>Install & Upgrade network configuration/setup required to make WiFi chip as 
+Access Point(AP) and Station(STA) both.</pre>
 
 <strong>--ap-ssid</strong>
 <pre>Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long. 
@@ -42,22 +42,23 @@ SE, SG, SI, SK, TH, TW, US, ZA</pre>
 
 <strong>--ap-ip-address</strong>
 <pre>Optional field for installation: Set Access Point(AP) IP Address. 
-Default IP Address value is: 10.0.0.1. 
+Default AP IP Address value is: 10.0.0.1. 
 Access Point(AP) IP address must not be equal to WiFi Station(wlan0) IP address: xxx.xxx.xxx.xxx 
-with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx</pre>
+with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx (where, the suffix xxx in the
+WiFi Station IP's will be replaced by the actual WiFi Station IP's of the device once the script
+is executed).
+</pre>
 	
 ----------------------------------------------------------------------------
 Example cleanup:
 ----------------------------------------------------------------------------
 <pre><code>sudo ./setup-network.sh --clean</code></pre>
 
-
 ----------------------------------------------------------------------------
 Example installation without upgrade: 
 ----------------------------------------------------------------------------
 <pre><code>sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" 
 --ap-country-code="IN" --ap-ip-address="192.168.0.1"</code></pre>
-
 
 ----------------------------------------------------------------------------
 Example installation with upgrade: 

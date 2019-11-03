@@ -6,9 +6,13 @@ Credited following [REFERENCE]: https://lb.raspberrypi.org/forums/viewtopic.php?
 
 Although, the script is created using the thought process of the above reference link but, there are many enhancements made to solve BUGS (occurred during evaluation and testing phase) and to promote many advanced features to automate and setup the single WiFi chip of Raspberry Pi as an Access Point(AP) and Station(STA) Network both (and hence, supporting HOTSPOT feature in Raspberry Pi using the execution of this script).
 
-Usage command is "sudo ./setup-network.sh" [OPTION].
-See [OPTION] below:
-============================================================================
+<pre>
+<strong>
+Usage command is: "sudo ./setup-network.sh" [OPTION]. See [OPTION] below:
+</strong>
+</pre>
+________________________________________________________________________________
+
 <strong>--clean</strong>
 <pre>Cleans/undo all the previously made network configuration/setup.</pre>
 
@@ -45,16 +49,18 @@ with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx</pre>
 ----------------------------------------------------------------------------
 Example cleanup:
 ----------------------------------------------------------------------------
-<code>sudo ./setup-network.sh --clean</code>
+<pre><code>sudo ./setup-network.sh --clean</code></pre>
 
 
 ----------------------------------------------------------------------------
 Example installation without upgrade: 
 ----------------------------------------------------------------------------
-<code>sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"</code>
+<pre><code>sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" 
+--ap-country-code="IN" --ap-ip-address="192.168.0.1"</code></pre>
 
 
 ----------------------------------------------------------------------------
 Example installation with upgrade: 
 ----------------------------------------------------------------------------
-<code>sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"</code>
+<pre><code>sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" 
+--ap-country-code="IN" --ap-ip-address="192.168.0.1"</code></pre>

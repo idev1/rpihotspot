@@ -43,6 +43,10 @@ SE, SG, SI, SK, TH, TW, US, ZA</pre>
 <strong>--ap-ip-address</strong>
 <pre>Optional field for installation: Set Access Point(AP) IP Address. 
 Default AP IP Address value is: 10.0.0.1. 
+LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
+[10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
+(Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
+about above IP address range).
 Access Point(AP) IP address must not be equal to WiFi Station(wlan0) IP address: xxx.xxx.xxx.xxx 
 with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx (where, the suffix xxx in the
 WiFi Station IP's will be replaced by the actual WiFi Station IP's of the device once the script

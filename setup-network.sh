@@ -58,6 +58,7 @@ rebootFlag=true
 # may change the Networking Interface name.
 wlanInterfaceName="wlan0"
 apInterfaceName="uap0"
+hostName="raspberrypi"
 
 # Set Country Code:
 wlanCountryCode="$( cat /etc/wpa_supplicant/wpa_supplicant.conf | grep 'country=' | awk -F '=' '{print $2}' )"
@@ -77,53 +78,61 @@ if [ ! -z "${wlanChannel}" ]; then
     apChannelDefault="$wlanChannel"
 fi
 
-echo ""
-echo "[WLAN]: ${wlanInterfaceName} IP address: $wlanIpAddr"
-echo "[WLAN]: ${wlanInterfaceName} IP Mask address: $wlanIpMask"
-echo "[WLAN]: ${wlanInterfaceName} IP Broadcast address: $wlanIpCast"
-echo "[WLAN]: ${wlanInterfaceName} Country Code: $wlanCountryCode"
-echo "[WLAN]: ${wlanInterfaceName} Channel: $wlanChannel"
-
-# REFERENCE: https://www.linuxjournal.com/content/validating-ip-address-bash-script (with my modification to check leading zero's)
-validIpAddress() {
-    local inIp=$1
-    local ip=$inIp
-    local status=1
-    
-    if [[ $ip =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
-        OIFS=$IFS
-        IFS='.'
-        ip=($ip)
-        IFS=$OIFS
+# REFERENCE: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses
+# Visit above site to know more about Reserved Private IP Address for LAN/WLAN communication.
+function validIpAddress()
+{
+    local  ip=$1
+    local  status=1
+    if [[ $ip =~ ^(10|172|192)\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then
         
+        IFS='.' read ipi1 ipi2 ipi3 ipi4 <<< "$ip"
         IFS='.' read -r -a wlanIpMaskArr <<< "$wlanIpMask"
-	IFS='.' read -r -a wlanIpAddrArr <<< "$wlanIpAddr"
-
-	wlanIpStartWith=""
-	wlanIpStartWithCount=0
-
-	for i in ${!wlanIpMaskArr[@]}; do
-		mskVal=${wlanIpMaskArr[$i]}
-		if [ $mskVal == 255 ]; then
-			if [ -z "$wlanIpStartWith" ]; then
-				wlanIpStartWith="${wlanIpAddrArr[$i]}"
-			else
-				wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
-			fi
-			wlanIpStartWithCount=$((wlanIpStartWithCount+1))
-		fi
-	done
-
-	wlanIpStartWith="$wlanIpStartWith."
+		IFS='.' read -r -a wlanIpAddrArr <<< "$wlanIpAddr"
 		
-        [[  ( $inIp != $wlanIpAddr && ! $inIp =~ ${wlanIpStartWith}* ) && \
-	(( ${#ip[0]} -eq 1 && ${ip[0]} -le 255 ) || ( ${#ip[0]} -gt 1 && ${ip[0]} != 0* && ${ip[0]} -le 255 )) && \
-	(( ${#ip[1]} -eq 1 && ${ip[1]} -le 255 ) || ( ${#ip[1]} -gt 1 && ${ip[1]} != 0* && ${ip[1]} -le 255 )) && \
-    	(( ${#ip[2]} -eq 1 && ${ip[2]} -le 255 ) || ( ${#ip[2]} -gt 1 && ${ip[2]} != 0* && ${ip[2]} -le 255 )) && \
-    	(( ${#ip[3]} -eq 1 && ${ip[3]} -le 255 ) || ( ${#ip[3]} -gt 1 && ${ip[3]} != 0* && ${ip[3]} -le 255 )) ]]
+		wlanIpStartWith=""
+		wlanIpStartWithCount=0
+		
+		for i in ${!wlanIpMaskArr[@]}; do
+			mskVal=${wlanIpMaskArr[$i]}
+			if [ $mskVal == 255 ]; then
+				if [ -z "$wlanIpStartWith" ]; then
+					wlanIpStartWith="${wlanIpAddrArr[$i]}"
+				else
+					wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
+				fi
+				wlanIpStartWithCount=$((wlanIpStartWithCount+1))
+			fi
+		done
+		
+		wlanIpStartWith="$wlanIpStartWith."
         
-        status=$?
-        
+        case $ipi1 in
+        10) 
+            [[ ( $ip != $wlanIpAddr && ! $ip =~ ${wlanIpStartWith}* ) && \
+                ((${#ipi2} -eq 1 && ${ipi2} -le 255) || (${#ipi2} -gt 1 && "${ipi2}" != 0* && ${ipi2} -le 255)) && \
+                ((${#ipi3} -eq 1 && ${ipi3} -le 255) || (${#ipi3} -gt 1 && "${ipi3}" != 0* && ${ipi3} -le 255)) && \
+                ((${#ipi4} -eq 1 && ${ipi4} -le 255) || (${#ipi4} -gt 1 && "${ipi4}" != 0* && ${ipi4} -le 255))
+             ]]
+            status=$?
+        ;;
+        172) 
+            [[  ( $ip != $wlanIpAddr && ! $ip =~ ${wlanIpStartWith}* ) && \
+                ("${ipi2}" != 0* && ${ipi2} -ge 16 && ${ipi2} -le 31) && \
+                ((${#ipi3} -eq 1 && ${ipi3} -le 255) || (${#ipi3} -gt 1 && "${ipi3}" != 0* && ${ipi3} -le 255)) && \
+                ((${#ipi4} -eq 1 && ${ipi4} -le 255) || (${#ipi4} -gt 1 && "${ipi4}" != 0* && ${ipi4} -le 255))
+             ]]
+            status=$?
+        ;;
+        192) 
+            [[  ( $ip != $wlanIpAddr && ! $ip =~ ${wlanIpStartWith}* ) && \
+                ("${ipi2}" != 0* && ${ipi2} -eq 168) && \
+                ((${#ipi3} -eq 1 && ${ipi3} -le 255) || (${#ipi3} -gt 1 && "${ipi3}" != 0* && ${ipi3} -le 255)) && \
+                ((${#ipi4} -eq 1 && ${ipi4} -le 255) || (${#ipi4} -gt 1 && "${ipi4}" != 0* && ${ipi4} -le 255))
+             ]]
+            status=$?
+        ;;
+        esac
     fi
     return $status
 }
@@ -143,65 +152,65 @@ while [ "$1" != "" ]; do
     fi
     
     if [[ "$1" == --ap-ssid=* ]]; then
-	apSsid="$(echo $1 | awk -F '=' '{print $2}')"
-	if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
-		apSsidValid=true
-	fi
+		apSsid="$(echo $1 | awk -F '=' '{print $2}')"
+		if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
+			apSsidValid=true
+		fi
     fi
     
     if [[ "$1" == --ap-password=* ]]; then
-	apPassphrase="$(echo $1 | awk -F '=' '{print $2}')"
+		apPassphrase="$(echo $1 | awk -F '=' '{print $2}')"
         if [[ "$apPassphrase" =~ ^[A-Za-z0-9@#$%^\&*_+-]{8,}$ ]]; then
-		apPassphraseValid=true
+			apPassphraseValid=true
         fi
     fi
     
     if [[ "$1" == --ap-country-code=* ]]; then
-	apCountryCodeTemp="$(echo $1 | awk -F '=' '{print $2}')"
-	if [ ! -z "$apCountryCodeTemp" ]; then
-		if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
-			if [[ ! -z "${wlanCountryCode}" && \
-			    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
-			    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
-			    apCountryCodeValid=false
+		apCountryCodeTemp="$(echo $1 | awk -F '=' '{print $2}')"
+		if [ ! -z "$apCountryCodeTemp" ]; then
+			if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
+                if [[ ! -z "${wlanCountryCode}" && \
+                    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
+                    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
+                    apCountryCodeValid=false
+                else
+                    apCountryCodeValid=true
+                    apCountryCode="$apCountryCodeTemp"
+                fi
 			else
-			    apCountryCodeValid=true
-			    apCountryCode="$apCountryCodeTemp"
+				apCountryCodeValid=false
 			fi
-		else
-			apCountryCodeValid=false
-		fi
         fi
     fi
     
     if [[ "$1" == --ap-ip-address=* ]]; then
-	apIpAddrTemp="$(echo $1 | awk -F '=' '{print $2}')"
-	if [ ! -z "$apIpAddrTemp" ]; then
-		if validIpAddress "$apIpAddrTemp"; then
-			apIpAddrValid=true
-			# Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
-			apIp="$apIpAddrTemp"
-			IFS='.' read -r -a apIpArr <<< "$apIp"
-			apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
-			apIpLastDigit=${apIpArr[3]}
-			div=$((apIpLastDigit/100))
-			minCalcDigit=1
-			maxCalcDigit=100
-			case $div in
-			    # Between (0-99)
-			    0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
-			    # Between (100-199)
-			    1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-			    # Between (200-255)
-			    2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-			    *) minCalcDigit=1; maxCalcDigit=100 ;;
-			esac
-			apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
-			apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
-		else
-			apIpAddrValid=false
+		apIpAddrTemp="$(echo $1 | awk -F '=' '{print $2}')"
+		if [ ! -z "$apIpAddrTemp" ]; then
+			if validIpAddress "$apIpAddrTemp"; then
+				apIpAddrValid=true
+                # Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
+				apIp="$apIpAddrTemp"
+                IFS='.' read -r -a apIpArr <<< "$apIp"
+                apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
+                apIpLastDigit=${apIpArr[3]}
+                div=$((apIpLastDigit/100))
+                minCalcDigit=1
+                maxCalcDigit=100
+                case $div in
+                    # Between (0-99)
+                    0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                    # Between (100-199)
+                    1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                    # Between (200-255)
+                    2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                    *) minCalcDigit=1; maxCalcDigit=100 ;;
+                esac
+                apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
+                apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
+			else
+				apIpAddrValid=false
+			fi
 		fi
-	fi
     fi
 	
     shift
@@ -377,6 +386,13 @@ doCleanup() {
 }
 
 doInstall() {
+
+echo ""
+echo "[WLAN]: ${wlanInterfaceName} IP address: $wlanIpAddr"
+echo "[WLAN]: ${wlanInterfaceName} IP Mask address: $wlanIpMask"
+echo "[WLAN]: ${wlanInterfaceName} IP Broadcast address: $wlanIpCast"
+echo "[WLAN]: ${wlanInterfaceName} Country Code: $wlanCountryCode"
+echo "[WLAN]: ${wlanInterfaceName} Channel: $wlanChannel"
 
 doCleanup
 
@@ -577,8 +593,8 @@ cat > /etc/hosts <<EOF
 ff02::1         ip6-allnodes
 ff02::2         ip6-allrouters
 
-127.0.1.1       raspberrypi
-$apIp    raspberrypi
+127.0.1.1       $hostName
+$apIp    $hostName
 EOF
 
 # Disable regular network services:
@@ -639,65 +655,63 @@ if [ "$install" = true -o "$installUpgrade" = true ]; then
     if [ "$apSsidValid" = false -o "$apPassphraseValid" = false \
         -o "$apCountryCodeValid" = false -o "$apIpAddrValid" = false ]; then
         
-errMsg='
-\n
-Invalid Access Point(AP) setup options are specified for installation.\n
-Please provide the below [OPTION] for installation:\n
-============================================================================\n
-\n
+echo '
+Invalid Access Point(AP) setup options are specified for installation.
+Please provide the below [OPTION] for installation:
+============================================================================
+
 '
         
         if [ "$apSsidValid" = false ]; then
-errMsg=''$errMsg'
-
---ap-ssid\t\t\tMandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long.\n
-\t\t\t\tAllowed special chars are: _ -\n
-\n'
+echo '
+--ap-ssid              Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long.
+                       Allowed special chars are: _ -
+'
         fi
         
         if [ "$apPassphraseValid" = false ]; then
-errMsg=''$errMsg'
-
---ap-password\t\t\tMandatory field for installation: Set Access Point(AP) Password. Atleast 8 chars long.\n
-\t\t\t\tAllowed special chars are: @ # $ %% ^ & * _ + -
+echo '
+--ap-password          Mandatory field for installation: Set Access Point(AP) Password. Atleast 8 chars long.
+                       Allowed special chars are: @ # $ %% ^ & * _ + -
 '
         fi
         
         if [ "$apCountryCodeValid" = false ]; then
-errMsg=''$errMsg'
-
- --ap-country-code\t\tOptional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
-\t\t\t\tMake sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
-\t\t\t\tAllowed Country codes are: 
-\t\t\t\t'${countryCodeArray[@]:0:20}'
-\t\t\t\t'${countryCodeArray[@]:20:20}'
-\t\t\t\t'${countryCodeArray[@]:40:5}'
+echo '
+--ap-country-code      Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
+                       Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
+                       Allowed Country codes are: 
+                       '${countryCodeArray[@]:0:20}'
+                       '${countryCodeArray[@]:20:20}'
+                       '${countryCodeArray[@]:40:5}'
 '
         fi
         
         if [ "$apIpAddrValid" = false ]; then
-errMsg=''$errMsg'
- --ap-ip-address\t\tOptional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'.
-\t\t\t\tAccess Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}'
-\t\t\t\twith its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
-
+echo '
+--ap-ip-address        Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'.
+                       LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
+                       [10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
+                       (Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
+                       about above IP address range).
+                       Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}'
+                       with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
 '
         fi
         
-errMsg=''$errMsg'
- ----------------------------------------------------------------------------
- Example installation without upgrade:
- ----------------------------------------------------------------------------
- sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
-\n
- ----------------------------------------------------------------------------
- Example installation with upgrade: 
- ----------------------------------------------------------------------------
- sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
-\n
-'
-        
-        printf "${errMsg}\n"
+echo '
+ 
+----------------------------------------------------------------------------
+Example installation without upgrade:
+----------------------------------------------------------------------------
+sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+
+
+----------------------------------------------------------------------------
+Example installation with upgrade: 
+----------------------------------------------------------------------------
+sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+'        
         
         exit 0
     fi
@@ -735,6 +749,10 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
                         '${countryCodeArray[@]:40:5}'
                         
     --ap-ip-address     Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'. 
+                        LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
+                        [10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
+                        (Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
+                        about above IP address range).
                         Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
                         with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
         

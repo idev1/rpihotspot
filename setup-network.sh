@@ -88,24 +88,24 @@ function validIpAddress()
         
         IFS='.' read ipi1 ipi2 ipi3 ipi4 <<< "$ip"
         IFS='.' read -r -a wlanIpMaskArr <<< "$wlanIpMask"
-		IFS='.' read -r -a wlanIpAddrArr <<< "$wlanIpAddr"
-		
-		wlanIpStartWith=""
-		wlanIpStartWithCount=0
-		
-		for i in ${!wlanIpMaskArr[@]}; do
-			mskVal=${wlanIpMaskArr[$i]}
-			if [ $mskVal == 255 ]; then
-				if [ -z "$wlanIpStartWith" ]; then
-					wlanIpStartWith="${wlanIpAddrArr[$i]}"
-				else
-					wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
-				fi
-				wlanIpStartWithCount=$((wlanIpStartWithCount+1))
-			fi
-		done
-		
-		wlanIpStartWith="$wlanIpStartWith."
+        IFS='.' read -r -a wlanIpAddrArr <<< "$wlanIpAddr"
+        
+        wlanIpStartWith=""
+        wlanIpStartWithCount=0
+        
+        for i in ${!wlanIpMaskArr[@]}; do
+	    mskVal=${wlanIpMaskArr[$i]}
+	    if [ $mskVal == 255 ]; then
+		if [ -z "$wlanIpStartWith" ]; then
+		    wlanIpStartWith="${wlanIpAddrArr[$i]}"
+		else
+		    wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
+		fi
+		wlanIpStartWithCount=$((wlanIpStartWithCount+1))
+	    fi
+        done
+        
+        wlanIpStartWith="$wlanIpStartWith."
         
         case $ipi1 in
         10) 
@@ -152,65 +152,65 @@ while [ "$1" != "" ]; do
     fi
     
     if [[ "$1" == --ap-ssid=* ]]; then
-		apSsid="$(echo $1 | awk -F '=' '{print $2}')"
-		if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
-			apSsidValid=true
-		fi
+	apSsid="$(echo $1 | awk -F '=' '{print $2}')"
+	if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
+	    apSsidValid=true
+	fi
     fi
     
     if [[ "$1" == --ap-password=* ]]; then
-		apPassphrase="$(echo $1 | awk -F '=' '{print $2}')"
+	apPassphrase="$(echo $1 | awk -F '=' '{print $2}')"
         if [[ "$apPassphrase" =~ ^[A-Za-z0-9@#$%^\&*_+-]{8,}$ ]]; then
-			apPassphraseValid=true
+	    apPassphraseValid=true
         fi
     fi
     
     if [[ "$1" == --ap-country-code=* ]]; then
-		apCountryCodeTemp="$(echo $1 | awk -F '=' '{print $2}')"
-		if [ ! -z "$apCountryCodeTemp" ]; then
-			if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
-                if [[ ! -z "${wlanCountryCode}" && \
-                    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
-                    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
-                    apCountryCodeValid=false
-                else
-                    apCountryCodeValid=true
-                    apCountryCode="$apCountryCodeTemp"
-                fi
-			else
-				apCountryCodeValid=false
-			fi
+	apCountryCodeTemp="$(echo $1 | awk -F '=' '{print $2}')"
+	if [ ! -z "$apCountryCodeTemp" ]; then
+	    if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
+		if [[ ! -z "${wlanCountryCode}" && \
+		    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
+		    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
+		    apCountryCodeValid=false
+		else
+		    apCountryCodeValid=true
+		    apCountryCode="$apCountryCodeTemp"
+		fi
+	    else
+		apCountryCodeValid=false
+	    fi
         fi
     fi
     
     if [[ "$1" == --ap-ip-address=* ]]; then
-		apIpAddrTemp="$(echo $1 | awk -F '=' '{print $2}')"
-		if [ ! -z "$apIpAddrTemp" ]; then
-			if validIpAddress "$apIpAddrTemp"; then
-				apIpAddrValid=true
-                # Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
-				apIp="$apIpAddrTemp"
-                IFS='.' read -r -a apIpArr <<< "$apIp"
-                apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
-                apIpLastDigit=${apIpArr[3]}
-                div=$((apIpLastDigit/100))
-                minCalcDigit=1
-                maxCalcDigit=100
-                case $div in
-                    # Between (0-99)
-                    0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
-                    # Between (100-199)
-                    1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-                    # Between (200-255)
-                    2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-                    *) minCalcDigit=1; maxCalcDigit=100 ;;
-                esac
-                apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
-                apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
-			else
-				apIpAddrValid=false
-			fi
-		fi
+	apIpAddrTemp="$(echo $1 | awk -F '=' '{print $2}')"
+	if [ ! -z "$apIpAddrTemp" ]; then
+	    if validIpAddress "$apIpAddrTemp"; then
+		apIpAddrValid=true
+		# Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
+		apIp="$apIpAddrTemp"
+		IFS='.' read -r -a apIpArr <<< "$apIp"
+		apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
+		apIpLastDigit=${apIpArr[3]}
+		div=$((apIpLastDigit/100))
+		minCalcDigit=1
+		maxCalcDigit=100
+		case $div in
+		# Between (0-99)
+		0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
+		# Between (100-199)
+		1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+		# Between (200-255)
+		2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+		*) minCalcDigit=1; maxCalcDigit=100 ;;
+		esac
+		apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
+		apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
+	    else
+		apIpAddrValid=false
+	    fi
+	fi
     fi
 	
     shift

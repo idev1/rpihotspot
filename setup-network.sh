@@ -11,6 +11,10 @@
 # Raspberry Pi as an Access Point(AP) and Station(STA) Network both (and hence, supporting
 # HOTSPOT feature in Raspberry Pi using the execution of this script).
 
+# Store all input options in an array:
+options=("$@")
+#echo "Input options are: ${options[@]}"
+
 apIpDefault="10.0.0.1"
 apDhcpRangeDefault="10.0.0.50,10.0.0.150,12h"
 apSetupIptablesMasqueradeDefault="iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -d 10.0.0.0/24 -j MASQUERADE"
@@ -53,30 +57,37 @@ apPassphraseValid=false
 apCountryCodeValid=true
 apIpAddrValid=true
 rebootFlag=true
+wlanInterfaceNameValid=true
 
 # Defined common WLAN and AP Interface names here as in the recent and future versions of Debian based OS 
 # may change the Networking Interface name.
-wlanInterfaceName="wlan0"
+wlanInterfaceNameDefault="wlan0"
+wlanInterfaceName="$wlanInterfaceNameDefault"
 apInterfaceName="uap0"
 hostName="raspberrypi"
 
-# Set Country Code:
-wlanCountryCode="$( cat /etc/wpa_supplicant/wpa_supplicant.conf | grep 'country=' | awk -F '=' '{print $2}' )"
-if [[ ! -z "${wlanCountryCode}" && \
-    ("${countryCodeArray[@]}" =~ "${wlanCountryCode}") ]]; then
-    apCountryCode="$wlanCountryCode"
-    apCountryCodeDefault="$wlanCountryCode"
-fi
+function setWlanDetails()
+{
+    # Set Country Code:
+    wlanCountryCode="$( cat /etc/wpa_supplicant/wpa_supplicant.conf | grep 'country=' | awk -F '=' '{print $2}' )"
+    if [[ ! -z "${wlanCountryCode}" && \
+	("${countryCodeArray[@]}" =~ "${wlanCountryCode}") ]]; then
+	apCountryCode="$wlanCountryCode"
+	apCountryCodeDefault="$wlanCountryCode"
+    fi
 
-# Read WiFi Station(${wlanInterfaceName}) IP, Mask and Broadcast addresses:
-read wlanIpAddr wlanIpMask wlanIpCast <<< $( echo $( ifconfig ${wlanInterfaceName} | grep 'inet ' ) | awk -F " " '{print $2" "$4" "$6}' )
+    # Read WiFi Station(${wlanInterfaceName}) IP, Mask and Broadcast addresses:
+    read wlanIpAddr wlanIpMask wlanIpCast <<< $( echo $( ifconfig ${wlanInterfaceName} | grep 'inet ' ) | awk -F " " '{print $2" "$4" "$6}' )
 
-# Set AP Channel:
-wlanChannel="$( iwlist ${wlanInterfaceName} channel | grep 'Current Frequency:' | awk -F '(' '{gsub("\)", "", $2); print $2}' | awk -F ' ' '{print $2}' )"
-if [ ! -z "${wlanChannel}" ]; then
-    apChannel="$wlanChannel"
-    apChannelDefault="$wlanChannel"
-fi
+    # Set AP Channel:
+    wlanChannel="$( iwlist ${wlanInterfaceName} channel | grep 'Current Frequency:' | awk -F '(' '{gsub("\)", "", $2); print $2}' | awk -F ' ' '{print $2}' )"
+    if [ ! -z "${wlanChannel}" ]; then
+	apChannel="$wlanChannel"
+	apChannelDefault="$wlanChannel"
+    fi
+}
+
+setWlanDetails
 
 # REFERENCE: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses
 # Visit above site to know more about Reserved Private IP Address for LAN/WLAN communication.
@@ -137,36 +148,62 @@ function validIpAddress()
     return $status
 }
 
-while [ "$1" != "" ]; do
+# Check first if a valid --wifi-interface name option is provided or not. 
+# If a valid --wifi-interface name option is provide then, reset the WLAN details
+# by calling the function: setWlanDetails.
+for i in ${!options[@]}; do
     
-    if [ "$1" = "--clean" ]; then
+    option="${options[$i]}"
+    
+    if [[ "$option" == --wifi-interface=* ]]; then
+	wlanInterfaceNameTemp="$(echo $option | awk -F '=' '{print $2}')"
+	if [ ! -z "$wlanInterfaceNameTemp" ]; then
+	    if [ "$(iwlist $wlanInterfaceNameTemp scan 2>/dev/null)" ]; then
+		wlanInterfaceNameValid=true
+		wlanInterfaceName="$wlanInterfaceNameTemp"
+		setWlanDetails
+	    else
+		wlanInterfaceNameValid=false
+		wlanInterfaceName="$wlanInterfaceNameDefault"
+	    fi
+	fi
+    fi
+	
+done
+
+# Process input options other than --wifi-interface.
+for i in ${!options[@]}; do
+
+    option="${options[$i]}"
+    
+    if [ "$option" = "--clean" ]; then
         cleanup=true
     fi
     
-    if [ "$1" = "--install" ]; then
+    if [ "$option" = "--install" ]; then
         install=true
     fi
 	
-    if [ "$1" = "--install-upgrade" ]; then
+    if [ "$option" = "--install-upgrade" ]; then
         installUpgrade=true
     fi
     
-    if [[ "$1" == --ap-ssid=* ]]; then
-	apSsid="$(echo $1 | awk -F '=' '{print $2}')"
+    if [[ "$option" == --ap-ssid=* ]]; then
+	apSsid="$(echo $option | awk -F '=' '{print $2}')"
 	if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
 	    apSsidValid=true
 	fi
     fi
     
-    if [[ "$1" == --ap-password=* ]]; then
-	apPassphrase="$(echo $1 | awk -F '=' '{print $2}')"
+    if [[ "$option" == --ap-password=* ]]; then
+	apPassphrase="$(echo $option | awk -F '=' '{print $2}')"
         if [[ "$apPassphrase" =~ ^[A-Za-z0-9@#$%^\&*_+-]{8,}$ ]]; then
 	    apPassphraseValid=true
         fi
     fi
     
-    if [[ "$1" == --ap-country-code=* ]]; then
-	apCountryCodeTemp="$(echo $1 | awk -F '=' '{print $2}')"
+    if [[ "$option" == --ap-country-code=* ]]; then
+	apCountryCodeTemp="$(echo $option | awk -F '=' '{print $2}')"
 	if [ ! -z "$apCountryCodeTemp" ]; then
 	    if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
 		if [[ ! -z "${wlanCountryCode}" && \
@@ -183,19 +220,21 @@ while [ "$1" != "" ]; do
         fi
     fi
     
-    if [[ "$1" == --ap-ip-address=* ]]; then
-	apIpAddrTemp="$(echo $1 | awk -F '=' '{print $2}')"
+    if [[ "$option" == --ap-ip-address=* ]]; then
+	apIpAddrTemp="$(echo $option | awk -F '=' '{print $2}')"
 	if [ ! -z "$apIpAddrTemp" ]; then
 	    if validIpAddress "$apIpAddrTemp"; then
 		apIpAddrValid=true
 		# Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
 		apIp="$apIpAddrTemp"
 		IFS='.' read -r -a apIpArr <<< "$apIp"
+		apIpSubnetSize=24
 		apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
 		apIpLastDigit=${apIpArr[3]}
 		div=$((apIpLastDigit/100))
 		minCalcDigit=1
 		maxCalcDigit=100
+		
 		case $div in
 		# Between (0-99)
 		0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
@@ -205,16 +244,22 @@ while [ "$1" != "" ]; do
 		2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
 		*) minCalcDigit=1; maxCalcDigit=100 ;;
 		esac
+		
+		case ${apIpArr[0]} in
+		10) apIpSubnetSize=24 ;;
+		172) apIpSubnetSize=20 ;;
+		192) apIpSubnetSize=16 ;;
+		*) apIpSubnetSize=24 ;;
+		esac
+		
 		apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
-		apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/24 ! -d ${apIpFirstThreeDigits}.0/24 -j MASQUERADE"
+		apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/${apIpSubnetSize} ! -d ${apIpFirstThreeDigits}.0/${apIpSubnetSize} -j MASQUERADE"
 	    else
 		apIpAddrValid=false
 	    fi
 	fi
     fi
-	
-    shift
-
+    
 done
 
 # Create initial directories:
@@ -637,8 +682,8 @@ EOF
 
 echo "[Install]: enabling netStop.service ..."
 
-systemctl systemctl enable netStop.service
-systemctl systemctl start netStop.service
+systemctl enable netStop.service
+systemctl start netStop.service
 
 chmod ug+x /etc/rc.local
 
@@ -661,7 +706,13 @@ Please provide the below [OPTION] for installation:
 ============================================================================
 
 '
-        
+
+        if [ "$wlanInterfaceNameValid" = false ]; then
+echo '
+[WARNING]: Invalid --wifi-interface name provided. Proceeding with default WiFi interface name as: '$wlanInterfaceNameDefault' ...
+'
+        fi
+	        
         if [ "$apSsidValid" = false ]; then
 echo '
 --ap-ssid              Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long.
@@ -704,13 +755,13 @@ echo '
 ----------------------------------------------------------------------------
 Example installation without upgrade:
 ----------------------------------------------------------------------------
-sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
 
 
 ----------------------------------------------------------------------------
 Example installation with upgrade: 
 ----------------------------------------------------------------------------
-sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
 '        
         
         exit 0
@@ -755,6 +806,12 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
                         about above IP address range).
                         Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
                         with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
+			
+    --wifi-interface	Optional field for installation: Set hardware in-built WiFi interface name to be used. 
+			Default value is: '$wlanInterfaceNameDefault'.
+			If an invalid WiFi interface name is provided then the installation will disregard this 
+			WiFi interface name and will not throw any error but, the installation will proceed with 
+			default in-built WiFi interface name as: '$wlanInterfaceNameDefault'.
         
     
     ----------------------------------------------------------------------------
@@ -766,13 +823,13 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     ----------------------------------------------------------------------------
     Example installation without upgrade: 
     ----------------------------------------------------------------------------
-    sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+    sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
     
     
     ----------------------------------------------------------------------------
     Example installation with upgrade: 
     ----------------------------------------------------------------------------
-    sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1"
+    sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
     
     '
     exit 0

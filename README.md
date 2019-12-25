@@ -52,6 +52,14 @@ with its submask: xxx.xxx.xxx.xxx and broadcast: xxx.xxx.xxx.xxx (where, the suf
 WiFi Station IP's will be replaced by the actual WiFi Station IP's of the device once the script
 is executed).
 </pre>
+
+<strong>--wifi-interface</strong>
+<pre>Optional field for installation: Set hardware specific in-built WiFi interface name to be used. 
+Default value is: 'wlan0'.
+If an invalid WiFi interface name is provided then the installation will disregard this 
+WiFi interface name and will not throw any error but, the installation will proceed with 
+default in-built WiFi interface name as: 'wlan0'.
+</pre>
 	
 ----------------------------------------------------------------------------
 Example cleanup:
@@ -62,10 +70,10 @@ Example cleanup:
 Example installation without upgrade: 
 ----------------------------------------------------------------------------
 <pre><code>sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" 
---ap-country-code="IN" --ap-ip-address="192.168.0.1"</code></pre>
+--ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"</code></pre>
 
 ----------------------------------------------------------------------------
 Example installation with upgrade: 
 ----------------------------------------------------------------------------
 <pre><code>sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" 
---ap-country-code="IN" --ap-ip-address="192.168.0.1"</code></pre>
+--ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"</code></pre>

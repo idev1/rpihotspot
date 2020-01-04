@@ -31,7 +31,7 @@ apPassphrase=""
 
 # REFERENCE: Country codes taken from: https://github.com/recalbox/recalbox-os/wiki/Wifi-country-code-(EN)
 countryCodeArray=("AT", "AU", "BE", "BR", "CA", "CH", "CN", "CY", "CZ", "DE", "DK", 
-"EE", "ES", "FI", "FR", "GB", "GR", "HK", "HU", "ID", "IE", "IL", "IN", "IS", "IT",  
+"EE", "ES", "FI", "FR", "GB", "GR", "HK", "HR", "HU", "ID", "IE", "IL", "IN", "IS", "IT",  
 "JP", "KR", "LT", "LU", "LV", "MY", "NL", "NO", "NZ", "PH", "PL", "PT", "SE", "SG", 
 "SI", "SK", "TH", "TW", "US", "ZA")
 

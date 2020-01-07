@@ -29,11 +29,21 @@ apChannel="$apChannelDefault"
 apSsid=""
 apPassphrase=""
 
-# REFERENCE: Country codes taken from: https://github.com/recalbox/recalbox-os/wiki/Wifi-country-code-(EN)
-countryCodeArray=("AT", "AU", "BE", "BR", "CA", "CH", "CN", "CY", "CZ", "DE", "DK", 
-"EE", "ES", "FI", "FR", "GB", "GR", "HK", "HR", "HU", "ID", "IE", "IL", "IN", "IS", "IT",  
-"JP", "KR", "LT", "LU", "LV", "MY", "NL", "NO", "NZ", "PH", "PL", "PT", "SE", "SG", 
-"SI", "SK", "TH", "TW", "US", "ZA")
+# REFERENCE: Country codes taken from: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
+countryCodeArray=('AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX', 'AZ', 
+'BA', 'BB', 'BD', 'BE', 'BF', 'BG', 'BH', 'BI', 'BJ', 'BL', 'BM', 'BN', 'BO', 'BQ', 'BR', 'BS', 'BT', 'BV', 'BW', 
+'BY', 'BZ', 'CA', 'CC', 'CD', 'CF', 'CG', 'CH', 'CI', 'CK', 'CL', 'CM', 'CN', 'CO', 'CR', 'CU', 'CV', 'CW', 'CX', 
+'CY', 'CZ', 'DE', 'DJ', 'DK', 'DM', 'DO', 'DZ', 'EC', 'EE', 'EG', 'EH', 'ER', 'ES', 'ET', 'FI', 'FJ', 'FK', 'FM', 
+'FO', 'FR', 'GA', 'GB', 'GD', 'GE', 'GF', 'GG', 'GH', 'GI', 'GL', 'GM', 'GN', 'GP', 'GQ', 'GR', 'GS', 'GT', 'GU', 
+'GW', 'GY', 'HK', 'HM', 'HN', 'HR', 'HT', 'HU', 'ID', 'IE', 'IL', 'IM', 'IN', 'IO', 'IQ', 'IR', 'IS', 'IT', 'JE', 
+'JM', 'JO', 'JP', 'KE', 'KG', 'KH', 'KI', 'KM', 'KN', 'KP', 'KR', 'KW', 'KY', 'KZ', 'LA', 'LB', 'LC', 'LI', 'LK', 
+'LR', 'LS', 'LT', 'LU', 'LV', 'LY', 'MA', 'MC', 'MD', 'ME', 'MF', 'MG', 'MH', 'MK', 'ML', 'MM', 'MN', 'MO', 'MP', 
+'MQ', 'MR', 'MS', 'MT', 'MU', 'MV', 'MW', 'MX', 'MY', 'MZ', 'NA', 'NC', 'NE', 'NF', 'NG', 'NI', 'NL', 'NO', 'NP', 
+'NR', 'NU', 'NZ', 'OM', 'PA', 'PE', 'PF', 'PG', 'PH', 'PK', 'PL', 'PM', 'PN', 'PR', 'PS', 'PT', 'PW', 'PY', 'QA', 
+'RE', 'RO', 'RS', 'RU', 'RW', 'SA', 'SB', 'SC', 'SD', 'SE', 'SG', 'SH', 'SI', 'SJ', 'SK', 'SL', 'SM', 'SN', 'SO', 
+'SR', 'SS', 'ST', 'SV', 'SX', 'SY', 'SZ', 'TC', 'TD', 'TF', 'TG', 'TH', 'TJ', 'TK', 'TL', 'TM', 'TN', 'TO', 'TR', 
+'TT', 'TV', 'TW', 'TZ', 'UA', 'UG', 'UM', 'US', 'UY', 'UZ', 'VA', 'VC', 'VE', 'VG', 'VI', 'VN', 'VU', 'WF', 'WS', 
+'YE', 'YT', 'ZA', 'ZM', 'ZW')
 
 workDir="/home/pi"
 installDir="$workDir/network-setup"
@@ -149,7 +159,7 @@ function validIpAddress()
 }
 
 # Check first if a valid --wifi-interface name option is provided or not. 
-# If a valid --wifi-interface name option is provide then, reset the WLAN details
+# If a valid --wifi-interface name option is provided then, reset the WLAN details
 # by calling the function: setWlanDetails.
 for i in ${!options[@]}; do
     
@@ -732,9 +742,15 @@ echo '
 --ap-country-code      Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
                        Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
                        Allowed Country codes are: 
-                       '${countryCodeArray[@]:0:20}'
-                       '${countryCodeArray[@]:20:20}'
-                       '${countryCodeArray[@]:40:5}'
+                       '${countryCodeArray[@]:0:30}'
+                       '${countryCodeArray[@]:30:30}'
+                       '${countryCodeArray[@]:60:30}'
+                       '${countryCodeArray[@]:90:30}'
+                       '${countryCodeArray[@]:120:30}'
+                       '${countryCodeArray[@]:150:30}'
+                       '${countryCodeArray[@]:180:30}'
+                       '${countryCodeArray[@]:210:30}'
+                       '${countryCodeArray[@]:240:9}'
 '
         fi
         
@@ -795,9 +811,15 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     --ap-country-code	Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
                         Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
                         Allowed Country codes are: 
-                        '${countryCodeArray[@]:0:20}'
-                        '${countryCodeArray[@]:20:20}'
-                        '${countryCodeArray[@]:40:5}'
+                        '${countryCodeArray[@]:0:30}'
+                        '${countryCodeArray[@]:30:30}'
+                        '${countryCodeArray[@]:60:30}'
+			'${countryCodeArray[@]:90:30}'
+			'${countryCodeArray[@]:120:30}'
+			'${countryCodeArray[@]:150:30}'
+			'${countryCodeArray[@]:180:30}'
+			'${countryCodeArray[@]:210:30}'
+			'${countryCodeArray[@]:240:9}'
                         
     --ap-ip-address     Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'. 
                         LAN/WLAN reserved private Access Point(AP) IP address must in the below range:

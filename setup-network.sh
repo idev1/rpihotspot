@@ -28,6 +28,7 @@ apCountryCode="$apCountryCodeDefault"
 apChannel="$apChannelDefault"
 apSsid=""
 apPassphrase=""
+apPasswordConfig=""
 
 # REFERENCE: Country codes taken from: https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2
 countryCodeArray=('AD', 'AE', 'AF', 'AG', 'AI', 'AL', 'AM', 'AO', 'AQ', 'AR', 'AS', 'AT', 'AU', 'AW', 'AX', 'AZ', 
@@ -209,6 +210,7 @@ for i in ${!options[@]}; do
 	apPassphrase="$(echo $option | awk -F '=' '{print $2}')"
         if [[ "$apPassphrase" =~ ^[A-Za-z0-9@#$%^\&*_+-]{8,}$ ]]; then
 	    apPassphraseValid=true
+	    apPasswordConfig="wpa_passphrase=$apPassphrase"
         fi
     fi
     
@@ -270,6 +272,15 @@ for i in ${!options[@]}; do
 	fi
     fi
     
+done
+
+# Process AP Password encryption:
+for i in ${!options[@]}; do
+    option="${options[$i]}"
+    if [ "$apSsidValid" = true -a "$apPassphraseValid" = true -a "$option" = "--ap-password-encrypt" ]; then
+	apWpaPsk="$( wpa_passphrase ${apSsid} ${apPassphrase} | awk '{$1=$1};1' | grep -P '^psk=' | awk -F '=' '{print $2}' )"
+	apPasswordConfig="wpa_psk=$apWpaPsk"
+    fi
 done
 
 # Create initial directories:
@@ -509,7 +520,8 @@ EOF
 cat > /etc/hostapd/hostapd.conf <<EOF
 channel=$apChannel
 ssid=$apSsid
-wpa_passphrase=$apPassphrase
+$apPasswordConfig
+country_code=$apCountryCode
 interface=${apInterfaceName}
 # Use the 2.4GHz band (I think you can use in ag mode to get the 5GHz band as well, but I have not tested this yet)
 hw_mode=g
@@ -526,7 +538,6 @@ wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
 #driver=nl80211
-country_code=$apCountryCode
 # I commented out the lines below in my implementation, but I kept them here for reference.
 # Enable WMM
 #wmm_enabled=1
@@ -771,13 +782,13 @@ echo '
 ----------------------------------------------------------------------------
 Example installation without upgrade:
 ----------------------------------------------------------------------------
-sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
+sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-password-encrypt --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
 
 
 ----------------------------------------------------------------------------
 Example installation with upgrade: 
 ----------------------------------------------------------------------------
-sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
+sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-password-encrypt --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
 '        
         
         exit 0
@@ -796,44 +807,46 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     Usage command is sudo setup-network.sh [OPTION].
     See [OPTION] below:
     ============================================================================
-    --clean             Cleans/undo all the previously made network configuration/setup.
+    --clean             	Cleans/undo all the previously made network configuration/setup.
     
-    --install           Install network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
+    --install           	Install network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
     
-    --install-upgrade   Install & Upgrade network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
+    --install-upgrade   	Install & Upgrade network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
     
-    --ap-ssid           Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long. 
-                        Allowed special chars are: _ -
+    --ap-ssid           	Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long. 
+				Allowed special chars are: _ -
                         
-    --ap-password       Mandatory field for installation: Set Access Point(AP) Password. Atleast 8 chars long. 
-                        Allowed special chars are: @ # $ % ^ & * _ + -
+    --ap-password       	Mandatory field for installation: Set Access Point(AP) Password. Atleast 8 chars long. 
+				Allowed special chars are: @ # $ % ^ & * _ + -
                         
-    --ap-country-code	Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
-                        Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
-                        Allowed Country codes are: 
-                        '${countryCodeArray[@]:0:30}'
-                        '${countryCodeArray[@]:30:30}'
-                        '${countryCodeArray[@]:60:30}'
-			'${countryCodeArray[@]:90:30}'
-			'${countryCodeArray[@]:120:30}'
-			'${countryCodeArray[@]:150:30}'
-			'${countryCodeArray[@]:180:30}'
-			'${countryCodeArray[@]:210:30}'
-			'${countryCodeArray[@]:240:9}'
+    --ap-password-encrypt	Optional field for installation. If specified, it will encrypt password in hostapd.conf file for security reason.
+    
+    --ap-country-code		Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
+				Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
+				Allowed Country codes are: 
+				'${countryCodeArray[@]:0:30}'
+				'${countryCodeArray[@]:30:30}'
+				'${countryCodeArray[@]:60:30}'
+				'${countryCodeArray[@]:90:30}'
+				'${countryCodeArray[@]:120:30}'
+				'${countryCodeArray[@]:150:30}'
+				'${countryCodeArray[@]:180:30}'
+				'${countryCodeArray[@]:210:30}'
+				'${countryCodeArray[@]:240:9}'
                         
-    --ap-ip-address     Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'. 
-                        LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
-                        [10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
-                        (Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
-                        about above IP address range).
-                        Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
-                        with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
+    --ap-ip-address     	Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'. 
+				LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
+				[10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
+				(Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
+				about above IP address range).
+				Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
+				with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
 			
-    --wifi-interface	Optional field for installation: Set hardware in-built WiFi interface name to be used. 
-			Default value is: '$wlanInterfaceNameDefault'.
-			If an invalid WiFi interface name is provided then the installation will disregard this 
-			WiFi interface name and will not throw any error but, the installation will proceed with 
-			default in-built WiFi interface name as: '$wlanInterfaceNameDefault'.
+    --wifi-interface		Optional field for installation: Set hardware in-built WiFi interface name to be used. 
+				Default value is: '$wlanInterfaceNameDefault'.
+				If an invalid WiFi interface name is provided then the installation will disregard this 
+				WiFi interface name and will not throw any error but, the installation will proceed with 
+				default in-built WiFi interface name as: '$wlanInterfaceNameDefault'.
         
     
     ----------------------------------------------------------------------------
@@ -845,13 +858,13 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     ----------------------------------------------------------------------------
     Example installation without upgrade: 
     ----------------------------------------------------------------------------
-    sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
+    sudo ./setup-network.sh --install --ap-ssid="abc-1" --ap-password="password@1" --ap-password-encrypt --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
     
     
     ----------------------------------------------------------------------------
     Example installation with upgrade: 
     ----------------------------------------------------------------------------
-    sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
+    sudo ./setup-network.sh --install-upgrade --ap-ssid="abc-1" --ap-password="password@1" --ap-password-encrypt --ap-country-code="IN" --ap-ip-address="192.168.0.1" --wifi-interface="wlan0"
     
     '
     exit 0

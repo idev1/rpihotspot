@@ -1,4 +1,5 @@
 #! /bin/bash
+set -e
 
 # Author: Pankaj Shelare
 # Email: pankaj.shelare@gmail.com

@@ -284,6 +284,37 @@ for i in ${!options[@]}; do
     fi
 done
 
+doRemoveDisableIPv6Setup() {
+    result=$(sed -n '/^#__IPv6_SETUP_START__/,/^#__IPv6_SETUP_END__/p' /etc/sysctl.conf)
+    if [ ! -z "$result" ]; then
+        echo "[Remove]: IPv6 config from /etc/sysctl.conf"
+        sed '/^#__IPv6_SETUP_START__/,/^#__IPv6_SETUP_END__/d' /etc/sysctl.conf > ./tmp.conf
+        rm -f /etc/sysctl.conf
+        mv ./tmp.conf /etc/sysctl.conf
+        rm -f ./tmp.conf
+    fi
+}
+
+doAddDisableIPv6Setup() {
+    doRemoveDisableIPv6Setup
+    cat >> /etc/sysctl.conf <<EOF
+
+#__IPv6_SETUP_START__
+net.ipv6.conf.all.disable_ipv6=1
+net.ipv6.conf.default.disable_ipv6=1
+net.ipv6.conf.lo.disable_ipv6=1
+net.ipv6.conf.eth0.disable_ipv6=1
+net.ipv6.conf.${wlanInterfaceName}.disable_ipv6=1
+#__IPv6_SETUP_END__
+EOF
+
+}
+
+# FIX: Raspbian Buster OS creating problem while reloading dhcpcd.service after cleanup.
+# This is causing because of IPv6 and hence, disabling IPv6.
+# You can enable IPv6 again by calling doRemoveDisableIPv6Setup() function.
+# doAddDisableIPv6Setup
+
 # Create initial directories:
 mkdir -p $installDir
 mkdir -p $logDir
@@ -348,8 +379,25 @@ doRemoveIpTableNatEntries() {
     echo "[Cleanup]: Cleaned all NAT IP Table entries."
 }
 
+doRestartSysDaemon() {
+    if [ ! `sudo systemctl status dhcpcd 2> /dev/null | grep "systemctl daemon-reload"` ]; then
+        systemctl daemon-reload
+        echo "[Restart]: System Daemon restarted!"
+    fi
+}
+
+doAptClean() {
+    apt-get clean
+    apt-get autoclean -y
+    apt-get autoremove -y
+    echo "[Cleanup]: apt-get clean/autoremove done."
+}
+
 doCleanup() {
     echo "[Cleanup]: cleaning ..."
+
+    # Do apt-get clean:
+    doAptClean
 
     # Cleanup: /etc/dhcpcd.conf
     doRemoveDhcpdApSetup
@@ -359,17 +407,33 @@ doCleanup() {
 
     if [ $(dpkg-query -W -f='${Status}' hostapd 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
         echo "[Remove]: hostapd"
-        apt purge -y hostapd
+        apt-get purge -y hostapd
+        # FIX: broken link if purge did not remove the dirctory as the dirctory is not empty and the directory has user-data.
+        if [ -d "/etc/hostapd" ]; then
+            rm -rf /etc/hostapd*
+            echo "[Remove]: Forcibly removed directory: /etc/hostapd."
+        fi
     fi
 
     if [ $(dpkg-query -W -f='${Status}' dnsmasq 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
         echo "[Remove]: dnsmasq"
-        apt purge -y dnsmasq
+        apt-get purge -y dnsmasq
+        # FIX: broken link if purge did not remove the dirctory as the dirctory is not empty and the directory has user-data.
+        if [ -d "/etc/dnsmasq.d" ]; then
+            rm -rf /etc/dnsmasq*
+            echo "[Remove]: Forcibly removed directory: /etc/dnsmasq.d and all related dnsmasq files."
+        fi
+    fi
+
+    # FIX: In Buster OS, dns-root-data creating problem while installing dnsmasq and hence, purge required for dns-root-data:
+    if [ $(dpkg-query -W -f='${Status}' dns-root-data 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+        echo "[Remove]: dns-root-data"
+        apt-get purge -y dns-root-data
     fi
 
     if [ $(dpkg-query -W -f='${Status}' iptables-persistent 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
         echo "[Remove]: iptables-persistent"
-        apt purge -y iptables-persistent
+        apt-get purge -y iptables-persistent
     fi
 
     if [ -f "$netStationConfigFile" ]; then
@@ -441,15 +505,27 @@ doCleanup() {
     doRemoveIpTableNatEntries
     
     # Clean and auto remove the previously install dependant component if they exists by improper purging.
-    apt clean
-    apt autoremove -y
+    doAptClean
 
     #Restart DHCPCD service:
+    # FIX: it seems daemon-reload required on Buster OS+ as the dhcpcd don't start by default 
+    # if the dhcpcd service unit is changed and then, it wait for sometime indicating that a 
+    # daemon-restart is required.
+    doRestartSysDaemon
     systemctl restart dhcpcd
     #systemctl daemon-reload
     sleep 5
     
     echo "[Cleanup]: DONE"
+}
+
+downloadReqDependancies() {
+    apt-get update --fix-missing
+    if [ "$installUpgrade" = true ]; then
+        apt-get upgrade -y --fix-missing
+        apt-get dist-upgrade -y
+    fi
+    apt-get install -y hostapd dnsmasq iptables-persistent
 }
 
 doInstall() {
@@ -461,7 +537,7 @@ echo "[WLAN]: ${wlanInterfaceName} IP Broadcast address: $wlanIpCast"
 echo "[WLAN]: ${wlanInterfaceName} Country Code: $wlanCountryCode"
 echo "[WLAN]: ${wlanInterfaceName} Channel: $wlanChannel"
 
-doCleanup
+doCleanup 
 
 touch $netLogFile
 chmod ug+w $netLogFile
@@ -473,12 +549,7 @@ echo iptables-persistent iptables-persistent/autosave_v6 boolean true | debconf-
 #If Internet is available then, install hostapd, dnsmasq, iptables-persistent from internet:
 if [ $(curl -Is http://www.google.com 2>/dev/null | head -n 1 | grep -c '200 OK') -gt 0 ]; then
     echo "[Install]: installing: hostapd dnsmasq iptables-persistent from net ..."
-    apt update
-    if [ "$installUpgrade" = true ]; then
-        apt upgrade -y
-        apt dist-upgrade -y
-    fi
-    apt install -y hostapd dnsmasq iptables-persistent
+    downloadReqDependancies
 else
     if [ -f $downloadDir/1_libnl-route-3-200.deb -a \
          -f $downloadDir/2_hostapd.deb -a \
@@ -497,6 +568,20 @@ else
         dpkg --install $downloadDir/7_iptables-persistent.deb
     fi
 fi
+
+# FIX: For issue #13, Raspbian Buster OS unable to correct nameserver entry in /etc/resolv.conf hence,
+# need to correct this entry for downloading the files again:
+
+if [ ! $(dpkg-query -W -f='${Status}' hostapd 2>/dev/null | grep -c "ok installed") -eq 1 -a \
+     ! $(dpkg-query -W -f='${Status}' dnsmasq 2>/dev/null | grep -c "ok installed") -eq 1 -a \
+     ! $(dpkg-query -W -f='${Status}' iptables-persistent 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+    if [ ! `sudo cat /etc/resolv.conf 2>/dev/null | grep "8.8.8.8"` ]; then
+        echo "nameserver 8.8.8.8" >> /etc/resolv.conf
+        echo "[Install]: Google nameserver 8.8.8.8 added into /etc/resolv.conf."
+        echo "[Install]: Now retrying 2nd time to download required dependancies ..."
+        downloadReqDependancies
+    fi
+fi 
 
 systemctl stop hostapd
 systemctl stop dnsmasq
@@ -715,6 +800,9 @@ echo "[Install]: DONE"
 
 if [ "$cleanup" = true ]; then
     doCleanup
+    systemctl daemon-reload
+    echo "[Reboot]: In 10 seconds ..."
+    sleep 10
     reboot
 fi
 

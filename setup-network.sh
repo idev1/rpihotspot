@@ -13,12 +13,19 @@ set -e
 # HOTSPOT feature in Raspberry Pi using the execution of this script).
 
 # BUG FIXES:
-# DHCPCD created problem in new Buster OS:
+# TODO: DHCPCD created problem in new Buster OS so, while upgrating OS make sure that, DHCPCD
+# and other dependancies are locked so that, it will have less conflict in re-installation.
+# This is presently not done but, it can be done using the below command. This feature will
+# be release in future version of the script.
 # sudo apt-mark hold dhcpcd5
 
 # Store all input options in an array:
 options=("$@")
 #echo "Input options are: ${options[@]}"
+
+OS_VERSION=`cat /etc/os-release 2>/dev/null | grep -i "VERSION_ID" | awk -F '=' '{gsub("\"", "", $2); print $2}'`
+echo ""
+echo "[INFO]: Processing network setup for OS Version: $OS_VERSION"
 
 apIpDefault="10.0.0.1"
 apDhcpRangeDefault="10.0.0.50,10.0.0.150,12h"
@@ -517,7 +524,11 @@ doCleanup() {
     # daemon-restart is required.
     doRestartSysDaemon
     systemctl restart dhcpcd
-    #systemctl daemon-reload
+    # FIX: For Buster OS, forcibly enabling dhcpcd if its previously disabled.
+    if [ $OS_VERSION == 10 ]; then
+        systemctl enable dhcpcd
+        echo "[Cleanup]: Forcibly enabled dhcpcd."
+    fi
     sleep 5
     
     echo "[Cleanup]: DONE"
@@ -815,7 +826,6 @@ echo "[Install]: DONE"
 
 if [ "$cleanup" = true ]; then
     doCleanup
-    systemctl daemon-reload
     echo "[Reboot]: In 10 seconds ..."
     sleep 10
     reboot
@@ -873,7 +883,7 @@ echo '
 echo '
 --ap-ip-address        Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'.
                        LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
-                       [10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
+                       [10.0.0.0 - 10.255.255.255] or [172.16.0.0 - 172.31.255.255] or [192.168.0.0 - 192.168.255.255]
                        (Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
                        about above IP address range).
                        Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}'
@@ -918,39 +928,39 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     --install-upgrade   	Install & Upgrade network configuration/setup required to make WiFi chip('${wlanInterfaceName}') as Access Point(AP) and Station(STA) both.
     
     --ap-ssid           	Mandatory field for installation: Set Access Point(AP) SSID. Atleast 3 chars long. 
-				Allowed special chars are: _ -
+				            Allowed special chars are: _ -
                         
     --ap-password       	Mandatory field for installation: Set Access Point(AP) Password. Atleast 8 chars long. 
-				Allowed special chars are: @ # $ % ^ & * _ + -
+				            Allowed special chars are: @ # $ % ^ & * _ + -
                         
     --ap-password-encrypt	Optional field for installation. If specified, it will encrypt password in hostapd.conf file for security reason.
     
     --ap-country-code		Optional field for installation: Set Access Point(AP) Country Code. Default value is: '$apCountryCodeDefault'. 
-				Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
-				Allowed Country codes are: 
-				'${countryCodeArray[@]:0:30}'
-				'${countryCodeArray[@]:30:30}'
-				'${countryCodeArray[@]:60:30}'
-				'${countryCodeArray[@]:90:30}'
-				'${countryCodeArray[@]:120:30}'
-				'${countryCodeArray[@]:150:30}'
-				'${countryCodeArray[@]:180:30}'
-				'${countryCodeArray[@]:210:30}'
-				'${countryCodeArray[@]:240:9}'
+                            Make sure that  the entered Country Code matches WiFi Country Code if it exists in /etc/wpa_supplicant/wpa_supplicant.conf
+                            Allowed Country codes are: 
+                            '${countryCodeArray[@]:0:30}'
+                            '${countryCodeArray[@]:30:30}'
+                            '${countryCodeArray[@]:60:30}'
+                            '${countryCodeArray[@]:90:30}'
+                            '${countryCodeArray[@]:120:30}'
+                            '${countryCodeArray[@]:150:30}'
+                            '${countryCodeArray[@]:180:30}'
+                            '${countryCodeArray[@]:210:30}'
+                            '${countryCodeArray[@]:240:9}'
                         
     --ap-ip-address     	Optional field for installation: Set Access Point(AP) IP Address. Default value is: '$apIpDefault'. 
-				LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
-				[10.0.0.0 – 10.255.255.255] or [172.16.0.0 – 172.31.255.255] or [192.168.0.0 – 192.168.255.255]
-				(Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
-				about above IP address range).
-				Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
-				with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
+                            LAN/WLAN reserved private Access Point(AP) IP address must in the below range:
+                            [10.0.0.0 - 10.255.255.255] or [172.16.0.0 - 172.31.255.255] or [192.168.0.0 - 192.168.255.255]
+                            (Refer site: https://en.wikipedia.org/wiki/Private_network#Private_IPv4_addresses to know more 
+                            about above IP address range).
+                            Access Point(AP) IP address must not be equal to WiFi Station('${wlanInterfaceName}') IP address: '${wlanIpAddr}' 
+                            with its submask: '${wlanIpMask}' and broadcast: '${wlanIpCast}'
 			
     --wifi-interface		Optional field for installation: Set hardware in-built WiFi interface name to be used. 
-				Default value is: '$wlanInterfaceNameDefault'.
-				If an invalid WiFi interface name is provided then the installation will disregard this 
-				WiFi interface name and will not throw any error but, the installation will proceed with 
-				default in-built WiFi interface name as: '$wlanInterfaceNameDefault'.
+                            Default value is: '$wlanInterfaceNameDefault'.
+                            If an invalid WiFi interface name is provided then the installation will disregard this 
+                            WiFi interface name and will not throw any error but, the installation will proceed with 
+                            default in-built WiFi interface name as: '$wlanInterfaceNameDefault'.
         
     
     ----------------------------------------------------------------------------
@@ -973,3 +983,4 @@ if [ "$cleanup" = false -a "$install" = false -a "$installUpgrade" = false ]; th
     '
     exit 0
 fi
+

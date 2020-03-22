@@ -12,6 +12,10 @@ set -e
 # Raspberry Pi as an Access Point(AP) and Station(STA) Network both (and hence, supporting
 # HOTSPOT feature in Raspberry Pi using the execution of this script).
 
+# BUG FIXES:
+# DHCPCD created problem in new Buster OS:
+# sudo apt-mark hold dhcpcd5
+
 # Store all input options in an array:
 options=("$@")
 #echo "Input options are: ${options[@]}"
@@ -528,6 +532,14 @@ downloadReqDependancies() {
     apt-get install -y hostapd dnsmasq iptables-persistent
 }
 
+isAvailableReqDependancies() {
+    [ $(dpkg-query -W -f='${Status}' hostapd 2>/dev/null | grep -c "ok installed") -eq 1 -a \
+     $(dpkg-query -W -f='${Status}' dnsmasq 2>/dev/null | grep -c "ok installed") -eq 1 -a \
+     $(dpkg-query -W -f='${Status}' iptables-persistent 2>/dev/null | grep -c "ok installed") -eq 1 ]
+    status=$?
+    return $status
+}
+
 doInstall() {
 
 echo ""
@@ -571,10 +583,7 @@ fi
 
 # FIX: For issue #13, Raspbian Buster OS unable to correct nameserver entry in /etc/resolv.conf hence,
 # need to correct this entry for downloading the files again:
-
-if [ ! $(dpkg-query -W -f='${Status}' hostapd 2>/dev/null | grep -c "ok installed") -eq 1 -a \
-     ! $(dpkg-query -W -f='${Status}' dnsmasq 2>/dev/null | grep -c "ok installed") -eq 1 -a \
-     ! $(dpkg-query -W -f='${Status}' iptables-persistent 2>/dev/null | grep -c "ok installed") -eq 1 ]; then
+if ! isAvailableReqDependancies; then
     if [ ! `sudo cat /etc/resolv.conf 2>/dev/null | grep "8.8.8.8"` ]; then
         echo "nameserver 8.8.8.8" >> /etc/resolv.conf
         echo "[Install]: Google nameserver 8.8.8.8 added into /etc/resolv.conf."
@@ -582,6 +591,12 @@ if [ ! $(dpkg-query -W -f='${Status}' hostapd 2>/dev/null | grep -c "ok installe
         downloadReqDependancies
     fi
 fi 
+
+if ! isAvailableReqDependancies; then
+    echo "[Install]: Required dependancies: hostapd, dnsmasq and iptables-persistent are not available. Please check your internet connection!"
+    echo "[Install]: Installation FAILED! Exiting installation now.."
+    exit 0
+fi
 
 systemctl stop hostapd
 systemctl stop dnsmasq

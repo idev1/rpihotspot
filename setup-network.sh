@@ -87,7 +87,15 @@ wlanInterfaceNameValid=true
 wlanInterfaceNameDefault="wlan0"
 wlanInterfaceName="$wlanInterfaceNameDefault"
 apInterfaceName="uap0"
-hostName="raspberrypi"
+hostNameDefault="raspberrypi"
+hostName="$hostNameDefault"
+
+# FIX: for https://github.com/idev1/rpihotspot/issues/12#issuecomment-605552834
+if [ ! -z "$( hostname )" ]; then 
+    hostName="$( hostname )"
+fi
+
+echo "[INFO]: Hostname is: $hostName"
 
 function setWlanDetails()
 {
@@ -97,8 +105,8 @@ function setWlanDetails()
     wlanCountryCode="$( echo $wlanCountryCode )"
     if [[ ! -z "${wlanCountryCode}" && \
 	("${countryCodeArray[@]}" =~ "${wlanCountryCode}") ]]; then
-	apCountryCode="$wlanCountryCode"
-	apCountryCodeDefault="$wlanCountryCode"
+	    apCountryCode="$wlanCountryCode"
+	    apCountryCodeDefault="$wlanCountryCode"
     fi
 
     # Read WiFi Station(${wlanInterfaceName}) IP, Mask and Broadcast addresses:
@@ -107,8 +115,8 @@ function setWlanDetails()
     # Set AP Channel:
     wlanChannel="$( iwlist ${wlanInterfaceName} channel | grep 'Current Frequency:' | awk -F '(' '{gsub("\)", "", $2); print $2}' | awk -F ' ' '{print $2}' )"
     if [ ! -z "${wlanChannel}" ]; then
-	apChannel="$wlanChannel"
-	apChannelDefault="$wlanChannel"
+	    apChannel="$wlanChannel"
+	    apChannelDefault="$wlanChannel"
     fi
 }
 
@@ -130,15 +138,15 @@ function validIpAddress()
         wlanIpStartWithCount=0
         
         for i in ${!wlanIpMaskArr[@]}; do
-	    mskVal=${wlanIpMaskArr[$i]}
-	    if [ $mskVal == 255 ]; then
-		if [ -z "$wlanIpStartWith" ]; then
-		    wlanIpStartWith="${wlanIpAddrArr[$i]}"
-		else
-		    wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
-		fi
-		wlanIpStartWithCount=$((wlanIpStartWithCount+1))
-	    fi
+	        mskVal=${wlanIpMaskArr[$i]}
+            if [ $mskVal == 255 ]; then
+                if [ -z "$wlanIpStartWith" ]; then
+                    wlanIpStartWith="${wlanIpAddrArr[$i]}"
+                else
+                    wlanIpStartWith="$wlanIpStartWith.${wlanIpAddrArr[$i]}"
+                fi
+                wlanIpStartWithCount=$((wlanIpStartWithCount+1))
+            fi
         done
         
         wlanIpStartWith="$wlanIpStartWith."
@@ -181,17 +189,17 @@ for i in ${!options[@]}; do
     option="${options[$i]}"
     
     if [[ "$option" == --wifi-interface=* ]]; then
-	wlanInterfaceNameTemp="$(echo $option | awk -F '=' '{print $2}')"
-	if [ ! -z "$wlanInterfaceNameTemp" ]; then
-	    if [ "$(iwlist $wlanInterfaceNameTemp scan 2>/dev/null)" ]; then
-		wlanInterfaceNameValid=true
-		wlanInterfaceName="$wlanInterfaceNameTemp"
-		setWlanDetails
-	    else
-		wlanInterfaceNameValid=false
-		wlanInterfaceName="$wlanInterfaceNameDefault"
-	    fi
-	fi
+        wlanInterfaceNameTemp="$(echo $option | awk -F '=' '{print $2}')"
+        if [ ! -z "$wlanInterfaceNameTemp" ]; then
+            if [ "$(iwlist $wlanInterfaceNameTemp scan 2>/dev/null)" ]; then
+                wlanInterfaceNameValid=true
+                wlanInterfaceName="$wlanInterfaceNameTemp"
+                setWlanDetails
+            else
+                wlanInterfaceNameValid=false
+                wlanInterfaceName="$wlanInterfaceNameDefault"
+            fi
+        fi
     fi
 	
 done
@@ -214,76 +222,76 @@ for i in ${!options[@]}; do
     fi
     
     if [[ "$option" == --ap-ssid=* ]]; then
-	apSsid="$(echo $option | awk -F '=' '{print $2}')"
-	if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
-	    apSsidValid=true
-	fi
+        apSsid="$(echo $option | awk -F '=' '{print $2}')"
+        if [[ "$apSsid" =~ ^[A-Za-z0-9_-]{3,}$ ]]; then
+            apSsidValid=true
+        fi
     fi
     
     if [[ "$option" == --ap-password=* ]]; then
-	apPassphrase="$(echo $option | awk -F '=' '{print $2}')"
+	    apPassphrase="$(echo $option | awk -F '=' '{print $2}')"
         if [[ "$apPassphrase" =~ ^[A-Za-z0-9@#$%^\&*_+-]{8,}$ ]]; then
-	    apPassphraseValid=true
-	    apPasswordConfig="wpa_passphrase=$apPassphrase"
+	        apPassphraseValid=true
+	        apPasswordConfig="wpa_passphrase=$apPassphrase"
         fi
     fi
     
     if [[ "$option" == --ap-country-code=* ]]; then
-	apCountryCodeTemp="$(echo $option | awk -F '=' '{print $2}')"
-	if [ ! -z "$apCountryCodeTemp" ]; then
-	    if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
-		if [[ ! -z "${wlanCountryCode}" && \
-		    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
-		    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
-		    apCountryCodeValid=false
-		else
-		    apCountryCodeValid=true
-		    apCountryCode="$apCountryCodeTemp"
-		fi
-	    else
-		apCountryCodeValid=false
-	    fi
+	    apCountryCodeTemp="$(echo $option | awk -F '=' '{print $2}')"
+	    if [ ! -z "$apCountryCodeTemp" ]; then
+            if [[ "${countryCodeArray[@]}" =~ "${apCountryCodeTemp}" ]]; then
+                if [[ ! -z "${wlanCountryCode}" && \
+                    (( ! "${countryCodeArray[@]}" =~ "${wlanCountryCode}") || \
+                    ( ! "${apCountryCodeTemp}" =~ "${wlanCountryCode}")) ]]; then
+                    apCountryCodeValid=false
+                else
+                    apCountryCodeValid=true
+                    apCountryCode="$apCountryCodeTemp"
+                fi
+            else
+                apCountryCodeValid=false
+            fi
         fi
     fi
     
     if [[ "$option" == --ap-ip-address=* ]]; then
-	apIpAddrTemp="$(echo $option | awk -F '=' '{print $2}')"
-	if [ ! -z "$apIpAddrTemp" ]; then
-	    if validIpAddress "$apIpAddrTemp"; then
-		apIpAddrValid=true
-		# Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
-		apIp="$apIpAddrTemp"
-		IFS='.' read -r -a apIpArr <<< "$apIp"
-		apIpSubnetSize=24
-		apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
-		apIpLastDigit=${apIpArr[3]}
-		div=$((apIpLastDigit/100))
-		minCalcDigit=1
-		maxCalcDigit=100
-		
-		case $div in
-		# Between (0-99)
-		0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
-		# Between (100-199)
-		1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-		# Between (200-255)
-		2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
-		*) minCalcDigit=1; maxCalcDigit=100 ;;
-		esac
-		
-		case ${apIpArr[0]} in
-		10) apIpSubnetSize=24 ;;
-		172) apIpSubnetSize=20 ;;
-		192) apIpSubnetSize=16 ;;
-		*) apIpSubnetSize=24 ;;
-		esac
-		
-		apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
-		apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/${apIpSubnetSize} ! -d ${apIpFirstThreeDigits}.0/${apIpSubnetSize} -j MASQUERADE"
-	    else
-		apIpAddrValid=false
-	    fi
-	fi
+        apIpAddrTemp="$(echo $option | awk -F '=' '{print $2}')"
+        if [ ! -z "$apIpAddrTemp" ]; then
+            if validIpAddress "$apIpAddrTemp"; then
+                apIpAddrValid=true
+                # Successful validation. Now set apIp, apDhcpRange and apSetupIptablesMasquerade:
+                apIp="$apIpAddrTemp"
+                IFS='.' read -r -a apIpArr <<< "$apIp"
+                apIpSubnetSize=24
+                apIpFirstThreeDigits="${apIpArr[0]}.${apIpArr[1]}.${apIpArr[2]}"
+                apIpLastDigit=${apIpArr[3]}
+                div=$((apIpLastDigit/100))
+                minCalcDigit=1
+                maxCalcDigit=100
+                
+                case $div in
+                # Between (0-99)
+                0) minCalcDigit=$((apIpLastDigit+1)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                # Between (100-199)
+                1) minCalcDigit=$((200-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                # Between (200-255)
+                2) minCalcDigit=$((256-apIpLastDigit)); maxCalcDigit=$((minCalcDigit+100)) ;;
+                *) minCalcDigit=1; maxCalcDigit=100 ;;
+                esac
+                
+                case ${apIpArr[0]} in
+                10) apIpSubnetSize=24 ;;
+                172) apIpSubnetSize=20 ;;
+                192) apIpSubnetSize=16 ;;
+                *) apIpSubnetSize=24 ;;
+                esac
+                
+                apDhcpRange="${apIpFirstThreeDigits}.${minCalcDigit},${apIpFirstThreeDigits}.${maxCalcDigit},12h"
+                apSetupIptablesMasquerade="iptables -t nat -A POSTROUTING -s ${apIpFirstThreeDigits}.0/${apIpSubnetSize} ! -d ${apIpFirstThreeDigits}.0/${apIpSubnetSize} -j MASQUERADE"
+            else
+                apIpAddrValid=false
+            fi
+        fi
     fi
     
 done
@@ -292,8 +300,8 @@ done
 for i in ${!options[@]}; do
     option="${options[$i]}"
     if [ "$apSsidValid" = true -a "$apPassphraseValid" = true -a "$option" = "--ap-password-encrypt" ]; then
-	apWpaPsk="$( wpa_passphrase ${apSsid} ${apPassphrase} | awk '{$1=$1};1' | grep -P '^psk=' | awk -F '=' '{print $2}' )"
-	apPasswordConfig="wpa_psk=$apWpaPsk"
+	    apWpaPsk="$( wpa_passphrase ${apSsid} ${apPassphrase} | awk '{$1=$1};1' | grep -P '^psk=' | awk -F '=' '{print $2}' )"
+	    apPasswordConfig="wpa_psk=$apWpaPsk"
     fi
 done
 
@@ -377,6 +385,14 @@ exit 0" >> ./tmp.conf
     rm -f /etc/rc.local
     mv ./tmp.conf /etc/rc.local
     rm -f ./tmp.conf
+}
+
+doRemoveApIpEntriesFromHostFile() {
+     if [ `cat /etc/hosts | grep -c ^10.` -gt 0 -o \
+     `cat /etc/hosts | grep -c ^172.` -gt 0 -o \
+     `cat /etc/hosts | grep -c ^192.168.` -gt 0 ]; then
+        sed '/^10./d;/^172./d;/^192.168./d' /etc/hosts > /etc/hosts
+     fi
 }
 
 doRemoveIpTableNatEntries() {
@@ -516,6 +532,9 @@ doCleanup() {
     fi
     
     doRemoveIpTableNatEntries
+
+    # FIX: for https://github.com/idev1/rpihotspot/issues/12#issuecomment-605552834
+    doRemoveApIpEntriesFromHostFile
     
     # Clean and auto remove the previously install dependant component if they exists by improper purging.
     doAptClean

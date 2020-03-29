@@ -391,7 +391,10 @@ doRemoveApIpEntriesFromHostFile() {
      if [ `cat /etc/hosts | grep -c ^10.` -gt 0 -o \
      `cat /etc/hosts | grep -c ^172.` -gt 0 -o \
      `cat /etc/hosts | grep -c ^192.168.` -gt 0 ]; then
-        sed '/^10./d;/^172./d;/^192.168./d' /etc/hosts > /etc/hosts
+        sed '/^10./d;/^172./d;/^192.168./d' /etc/hosts > ./tmp.conf
+        mv ./tmp.conf /etc/hosts
+        rm -f ./tmp.conf
+        echo "[Cleanup]: Cleaned all AP IP entries from /etc/hosts file."
      fi
 }
 

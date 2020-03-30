@@ -398,6 +398,20 @@ doRemoveApIpEntriesFromHostFile() {
      fi
 }
 
+doAddApIpEntriesToHostFile() {
+
+    cat > /etc/hosts <<EOF 
+127.0.0.1       localhost
+::1             localhost ip6-localhost ip6-loopback
+ff02::1         ip6-allnodes
+ff02::2         ip6-allrouters
+
+127.0.1.1       $hostName
+$apIp    $hostName
+EOF
+
+}
+
 doRemoveIpTableNatEntries() {
     # Clean other network entries:
     #iw dev uap0 del
@@ -789,15 +803,7 @@ chmod ug+x $netStartFile
 
 doAddRcLocalNetStartSetup
 
-cat > /etc/hosts <<EOF 
-127.0.0.1       localhost
-::1             localhost ip6-localhost ip6-loopback
-ff02::1         ip6-allnodes
-ff02::2         ip6-allrouters
-
-127.0.1.1       $hostName
-$apIp    $hostName
-EOF
+doAddApIpEntriesToHostFile
 
 # Disable regular network services:
 # The netStart script handles starting up network services in a certain order and time frame. Disabling them here makes sure things are not run at system startup.

@@ -101,8 +101,8 @@ function setWlanDetails()
 {
     # Set Country Code:
     wlanCountryCode="$( cat /etc/wpa_supplicant/wpa_supplicant.conf | grep -i 'country=' | awk -F '=' '{print $2}' )"
-    # FIX: #12, trimming spaces for WLAN Country code if there are any.
-    wlanCountryCode="$( echo $wlanCountryCode )"
+    # FIX: #12, trimming spaces and carriage return for WLAN Country code if there are any.
+    wlanCountryCode="$( echo $wlanCountryCode | tr -d '\r' )"
     if [[ ! -z "${wlanCountryCode}" && \
 	("${countryCodeArray[@]}" =~ "${wlanCountryCode}") ]]; then
 	    apCountryCode="$wlanCountryCode"

@@ -674,7 +674,12 @@ $apPasswordConfig
 country_code=$apCountryCode
 interface=${apInterfaceName}
 # Use the 2.4GHz band (I think you can use in ag mode to get the 5GHz band as well, but I have not tested this yet)
-hw_mode=g
+#hw_mode=g
+### On my raspberry pi 4, the following three lines led to a successfully running hostapd 
+hw_mode=a
+ieee80211n=1
+ieee80211ac=1
+### end
 # Accept all MAC addresses
 macaddr_acl=0
 # Use WPA authentication

@@ -31,7 +31,7 @@ apIpDefault="10.0.0.1"
 apDhcpRangeDefault="10.0.0.50,10.0.0.150,12h"
 apSetupIptablesMasqueradeDefault="iptables -t nat -A POSTROUTING -s 10.0.0.0/24 ! -d 10.0.0.0/24 -j MASQUERADE"
 apCountryCodeDefault="IN"
-apChannelDefault="1"
+apChannelDefault="6"
 
 apIp="$apIpDefault"
 apDhcpRange="$apDhcpRangeDefault"
@@ -693,6 +693,8 @@ rsn_pairwise=CCMP
 #wmm_enabled=1
 # Enable 40MHz channels with 20ns guard interval
 #ht_capab=[HT40][SHORT-GI-20][DSSS_CCK-40]
+ctrl_interface_group=0
+ctrl_interface=/var/run/hostapd
 EOF
 
 sed -i 's/^#DAEMON_CONF=.*$/DAEMON_CONF="\/etc\/hostapd\/hostapd.conf"/' /etc/default/hostapd
